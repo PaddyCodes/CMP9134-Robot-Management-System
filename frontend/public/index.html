@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GCS — Dashboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6f9;
+      color: #0a2342;
+    }
+
+    header {
+      background: #0a2342;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+    }
+
+    .conn-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .conn-indicator.ok {
+      background: #26a69a;
+    }
+
+    .conn-indicator.error {
+      background: #c62828;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+      text-align: center;
+    }
+
+    .stat-card .label {
+      font-size: .72rem;
+      color: #5a6a85;
+      text-transform: uppercase;
+    }
+
+    .stat-card .value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .stat-card.warn .value {
+      color: #e8a020;
+    }
+
+    .stat-card.danger .value {
+      color: #c62828;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>⚙ GROUND CONTROL STATION</h1>
+    <div>
+      <span id="conn-dot" class="conn-indicator error"></span>
+      <span id="conn-label" style="font-size:.8rem;color:#ccc">Connecting…</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="stat-card" id="card-pos">
+      <div class="label">Position</div>
+      <div class="value" id="pos">—</div>
+    </div>
+    <div class="stat-card" id="card-battery">
+      <div class="label">Battery</div>
+      <div class="value" id="battery">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Status</div>
+      <div class="value" style="font-size:1.1rem" id="robot-status">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Robot ID</div>
+      <div class="value" style="font-size:1rem" id="robot-id">—</div>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    async function poll() {
+      try {
+        const r = await fetch('/api/status');
+        if (!r.ok) throw new Error(r.statusText);
+        const d = await r.json();
+
+        $('conn-dot').className = 'conn-indicator ok';
+        $('conn-label').textContent = 'Connected';
+
+        $('robot-id').textContent = d.id ?? '—';
+        $('pos').textContent = d.position ? `(${d.position.x}, ${d.position.y})` : '—';
+        $('robot-status').textContent = d.status ?? '—';
+
+        if (d.battery !== undefined) {
+          $('battery').textContent = `${d.battery.toFixed(1)}%`;
+          const card = $('card-battery');
+          card.className = 'stat-card' + (d.battery < 20 ? ' danger' : d.battery < 40 ? ' warn' : '');
+        }
+      } catch {
+        $('conn-dot').className = 'conn-indicator error';
+        $('conn-label').textContent = 'Unreachable';
+      }
+    }
+
+    poll();
+    setInterval(poll, 3000);
+  </script>
+
+</body>
+
+</html>

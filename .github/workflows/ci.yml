@@ -1,0 +1,222 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# CI — Build, Test & Push
+#
+# This is a GitHub Actions workflow — a script that GitHub runs automatically
+# whenever code is pushed or a pull request is opened. Its job is to verify
+# that new code doesn't break anything before it is merged.
+#
+# The overall pipeline has two sequential stages (jobs):
+#   1. test          — run unit/integration tests inside a plain Python env
+#   2. compose-test  — spin up the full multi-container stack and smoke-test it
+#
+# Docs: https://docs.github.com/en/actions/using-workflows
+# ══════════════════════════════════════════════════════════════════════════════
+name: CI — Build, Test & Push
+
+# ── Trigger conditions ────────────────────────────────────────────────────────
+# "on" defines WHEN GitHub should run this workflow.
+#
+#   push → branches: [main]
+#     Run every time someone pushes commits directly to the main branch.
+#
+#   pull_request → branches: [main]
+#     Run every time a pull request that targets main is opened or updated.
+#     This lets reviewers see test results before approving a merge.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# ── Concurrency guard ─────────────────────────────────────────────────────────
+# If two runs are triggered for the same branch almost simultaneously (e.g. two
+# quick pushes), GitHub will cancel the older, still-in-progress run and only
+# keep the most recent one.  This saves CI minutes and avoids cluttered results.
+#
+#   group: combines the workflow name + the git ref (branch/PR number) into a
+#          unique key, so runs for different branches do NOT cancel each other.
+#
+#   cancel-in-progress: true  — actually cancel the older run (false would just
+#                               queue the new one until the old one finishes).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ── Workflow-level environment variables ──────────────────────────────────────
+# Variables defined here are available to EVERY job and step in this file.
+# Using variables avoids repeating magic strings in multiple places.
+#
+#   REGISTRY   — the container registry we push Docker images to.
+#                ghcr.io is GitHub Container Registry, free for public repos.
+#
+#   IMAGE_NAME — built from the automatic `github.repository` context variable,
+#                which expands to "<owner>/<repo-name>" (e.g. "UoL-SoCS/CMP9134").
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 1 — Unit + integration tests
+  #
+  # Runs the pytest suite directly on the host runner (no Docker needed here).
+  # Using a plain Python environment is fast and gives clear, line-level error
+  # messages when something fails.
+  # ════════════════════════════════════════════════════════════════════════════
+  test:
+    # Human-readable label shown in the GitHub Actions UI.
+    # ${{ matrix.python-version }} is replaced at runtime (see "matrix" below).
+    name: Test (Python ${{ matrix.python-version }})
+
+    # The type of virtual machine GitHub spins up to run this job.
+    # ubuntu-latest is the most common choice — free, fast, Docker-capable.
+    runs-on: ubuntu-latest
+
+    # ── Matrix strategy ───────────────────────────────────────────────────
+    # A matrix creates MULTIPLE parallel runs of the same job, one for each
+    # combination of values.  Here we test against Python 3.11 and 3.12 at
+    # the same time, catching any version-specific breakage early.
+    #
+    # GitHub Actions substitutes ${{ matrix.python-version }} wherever you use
+    # that expression, so each run gets the correct value automatically.
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      # ── Check out the repository ─────────────────────────────────────────
+      # This is almost always the first step.  It clones your repo into the
+      # runner's workspace so subsequent steps can access the source files.
+      # @v4 pins the action to a specific major version for reproducibility.
+      - uses: actions/checkout@v4
+
+      # ── Install the requested Python version ────────────────────────────
+      # GitHub runners come with several Python versions pre-installed, but
+      # this action ensures exactly the version from the matrix is active and
+      # sets up pip caching so subsequent runs are faster.
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Static Analysis (Linting)
+        run: |
+          pip install flake8
+          # E9,F63,F7,F82 flag fatal syntax errors and undefined names
+          flake8 ./backend --count --max-complexity=5 --show-source --statistics --extend-ignore=E501,W293,W291
+      # just a placeholder for your tests. Implement your actual test commands here, e.g. "pytest ..."
+      - name: Run tests with coverage
+        run: |
+          true
+
+
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 2 — Docker Compose integration test
+  #
+  # Builds and starts the FULL application stack (backend + frontend + any
+  # other services defined in docker-compose.yml) and verifies that the
+  # services can actually communicate with each other.
+  #
+  # This job runs AFTER job 1 completes (see "needs: test").  There is no
+  # point building Docker images if the unit tests are already broken.
+  # ════════════════════════════════════════════════════════════════════════════
+  compose-test:
+    name: Docker Compose integration
+    runs-on: ubuntu-latest
+
+    # ── Job dependency ────────────────────────────────────────────────────
+    # "needs" creates an explicit ordering: compose-test will only START once
+    # the "test" job has finished successfully.  If "test" fails, this job is
+    # skipped automatically, saving runner time.
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Prepare the environment file ─────────────────────────────────────
+      # docker-compose.yml typically reads secrets and config from a .env file.
+      # The real .env is never committed to Git (it contains passwords etc.),
+      # so the repo ships a safe .env.example with placeholder values.  We copy
+      # it here so docker compose can start without complaint.
+      - name: Copy env file
+        run: cp .env.example .env
+
+      # ── Build images and start all services ──────────────────────────────
+      # "docker compose up --build -d" does three things:
+      #   --build  rebuild Docker images from the Dockerfiles (picks up any
+      #            changes to source code since the last build)
+      #   up       create and start all containers defined in docker-compose.yml
+      #   -d       detached mode — run containers in the background so this
+      #            step completes immediately rather than streaming logs forever
+      - name: Build and start all services
+        run: docker compose up --build -d
+
+      # ── Poll until the backend is healthy ────────────────────────────────
+      # Containers start in milliseconds but the application inside may take
+      # several seconds to initialise.  We must wait before testing it.
+      #
+      # Strategy: poll with a retry loop (up to 20 × 5 s = 100 s).
+      #   docker compose ps backend   — shows the current state of the container
+      #   grep -q "healthy"           — exits 0 (success) only when the Docker
+      #                                 health check passes (defined in the
+      #                                 Dockerfile or docker-compose.yml via
+      #                                 the HEALTHCHECK instruction)
+      #
+      # If the backend never becomes healthy within the timeout the loop ends
+      # and the next step's curl will fail, producing a useful error.
+      - name: Wait for backend health check
+        run: |
+          echo "Waiting for backend to be healthy…"
+          for i in {1..20}; do
+            if docker compose ps backend | grep -q "healthy"; then
+              echo "Backend is healthy."
+              break
+            fi
+            echo "Attempt $i/20 — waiting 5s…"
+            sleep 5
+          done
+
+      # ── Smoke test the HTTP API ───────────────────────────────────────────
+      # A "smoke test" is the simplest possible check: does the service respond
+      # at all?  We call the /health endpoint through the Nginx reverse proxy
+      # (port 8080) rather than the backend directly.
+      #
+      # curl flags:
+      #   -s  silent — suppress the progress bar
+      #   -f  fail   — exit with a non-zero code if the HTTP status is >= 400
+      #
+      # If curl fails we immediately print the backend's recent logs with
+      # "docker compose logs" so the developer can read the error in CI output,
+      # then exit 1 to mark the step (and therefore the job) as failed.
+      - name: Smoke test — health endpoint
+        run: |
+          curl -sf http://localhost:8080/health \
+          || (docker compose logs backend && exit 1)
+
+      # ── Dump diagnostic information ───────────────────────────────────────
+      # "if: always()" means this step runs regardless of whether earlier steps
+      # passed or failed.  Printing the container status and recent logs here
+      # makes debugging failed CI runs much easier — you can see exactly which
+      # containers were running and what errors they reported.
+      - name: Print service status
+        if: always()
+        run: |
+          docker compose ps
+          echo "--- Backend logs (last 30 lines) ---"
+          docker compose logs backend --tail 30
+
+      # ── Clean up ──────────────────────────────────────────────────────────
+      # Stop and remove all containers, networks, and volumes created by this
+      # run.  Using "if: always()" ensures cleanup happens even after a failure
+      # so that resources are not left dangling on the runner.
+      #
+      #   docker compose down -v
+      #     down   — stop and remove containers and networks
+      #     -v     — also remove named volumes (database data etc.)
+      #              Keeps each CI run isolated from the previous one.
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  

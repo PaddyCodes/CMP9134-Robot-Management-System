@@ -1,0 +1,235 @@
+  {
+    // ============================================================
+    // WHAT IS A DEV CONTAINER?
+    // ============================================================
+    // A Dev Container (devcontainer) lets you define your entire
+    // development environment as code. VS Code (and GitHub Codespaces)
+    // reads this file and automatically builds/starts the right
+    // Docker containers, installs extensions, and configures settings
+    // — so every team member gets the *exact same* environment.
+    //
+    // This project uses the "Docker Compose" variant of dev containers,
+    // meaning the environment is made up of *multiple* cooperating
+    // services defined in docker-compose.yml (a multi-container setup).
+    // ============================================================
+    // A human-readable label shown in VS Code's title bar / status bar.
+    "name": "Ground Control Station — Dev Environment",
+    // ============================================================
+    // DOCKER COMPOSE FILES
+    // ============================================================
+    // Dev containers that use Docker Compose need at least one
+    // Compose file. Here we list TWO files; Docker Compose merges
+    // them in order, so the second file can *override or extend*
+    // values from the first:
+    //
+    //  1. ../docker-compose.yml          — the production-style base
+    //     Compose file shared with the rest of the project. It defines
+    //     all services (robot-api, backend, frontend) with their images,
+    //     networks, and environment variables.
+    //
+    //  2. docker-compose.devcontainer.yml — a dev-only override that
+    //     mounts your local source code *into* the running containers
+    //     (using a bind mount), so edits you make in VS Code are
+    //     immediately visible inside the container without rebuilding.
+    //
+    // This "base + override" pattern keeps production config clean
+    // while adding dev-friendly conveniences only when needed.
+    "dockerComposeFile": [
+      "../docker-compose.yml",
+      "docker-compose.devcontainer.yml"
+    ],
+    // ============================================================
+    // PRIMARY SERVICE
+    // ============================================================
+    // When you have multiple services in your Compose file, VS Code
+    // needs to know *which one* to "attach" to — i.e., which container
+    // will be your interactive development shell, run your terminal
+    // sessions, and host your workspace files.
+    //
+    // Here that is "backend" (the FastAPI service you are writing).
+    // VS Code opens a remote connection directly inside this container.
+    "service": "backend",
+    // ============================================================
+    // WORKSPACE FOLDER
+    // ============================================================
+    // The absolute path *inside the container* that VS Code treats as
+    // the root of your project. The bind mount in
+    // docker-compose.devcontainer.yml maps your local repo to this
+    // path, so the files you see in the Explorer are the same files
+    // the container runs.
+    "workspaceFolder": "/workspace",
+    // ============================================================
+    // ADDITIONAL SERVICES TO START
+    // ============================================================
+    // By default VS Code only starts the primary "service" container.
+    // "runServices" tells it to also start these extra services when
+    // the dev container opens, so the full stack is available for
+    // live testing without manual `docker compose up` commands:
+    //
+    //  • robot-api  — a pre-built simulator that mimics a physical
+    //                 robot's HTTP API (running on port 5000).
+    //                 Your backend talks to this as if it were a
+    //                 real robot.
+    //  • frontend   — the Nginx web server serving the student UI
+    //                 (running on port 80 inside its container).
+    "runServices": [
+      "robot-api",
+      "frontend"
+    ],
+    // ============================================================
+    // PORT FORWARDING
+    // ============================================================
+    // Containers run in an isolated Docker network. "forwardPorts"
+    // creates tunnels so that your *host* machine (and VS Code's
+    // Simple Browser) can reach ports inside that network.
+    //
+    // Format options:
+    //   "service:port"  — forward a port from a *named service* container
+    //   number          — forward a port from the *primary* service container
+    //
+    //  • "robot-api:5000" — the simulated robot API (inside robot-api container)
+    //  • 8000             — your FastAPI/uvicorn backend (inside THIS backend devcontainer)
+    //  • "frontend:80"    — the Nginx frontend (inside frontend container)
+    //
+    // After forwarding, localhost:5000 / localhost:8000 / localhost:80
+    // on your host all reach the right service.
+    "forwardPorts": [
+      "robot-api:5000",
+      8000,
+      "frontend:80"
+    ],
+    // ============================================================
+    // PORT LABELS & AUTO-FORWARD BEHAVIOUR
+    // ============================================================
+    // "portsAttributes" customises how VS Code handles each forwarded
+    // port. Two behaviours are configured here:
+    //
+    //  "notify"      — show a toast notification with a link when the
+    //                  port becomes available (good for APIs you'll
+    //                  call manually or via a REST client).
+    //
+    //  "openBrowser" — automatically open the system browser when
+    //                  the port becomes available (ideal for the UI).
+    "portsAttributes": {
+      "robot-api:5000": {
+        "label": "Robot API (provided)",
+        "onAutoForward": "notify"
+      },
+      "8000": {
+        "label": "Backend API (uvicorn)",
+        "onAutoForward": "notify"
+      },
+      "frontend:80": {
+        "label": "Frontend",
+        // Opens the browser automatically once Nginx is ready.
+        "onAutoForward": "openBrowser"
+      }
+    },
+    // ============================================================
+    // POST-CREATE COMMAND
+    // ============================================================
+    // A shell command (or script) that runs *once*, after the
+    // container is first created and VS Code has connected.
+    // It does NOT run on subsequent reopens.
+    //
+    // Here it simply prints a reminder of how to start the uvicorn
+    // development server. The server is intentionally NOT started
+    // automatically so you can make code changes before starting it.
+    //
+    // To start the backend, open a terminal in VS Code and run:
+    //   cd /workspace/backend && uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    //
+    // The "--reload" flag makes uvicorn watch for file changes and
+    // restart automatically — very useful during development.
+    "postCreateCommand": "echo 'run \"cd /workspace/backend && uvicorn main:app --host 0.0.0.0 --port 8000 --reload\" to start the backend API'",
+    // ============================================================
+    // USER ID SYNCHRONISATION
+    // ============================================================
+    // On Linux hosts, files created inside the container are owned by
+    // the container's user UID. If that UID differs from your host
+    // user's UID, you get permission errors when editing files.
+    // Setting this to true makes VS Code automatically remap the
+    // container's user UID to match your host UID — preventing those
+    // permission issues transparently.
+    "updateRemoteUserUID": true,
+    // ============================================================
+    // VS CODE CUSTOMISATIONS
+    // ============================================================
+    // "customizations.vscode" lets you declare extensions and editor
+    // settings that are automatically applied *inside* this dev
+    // container. This keeps project-specific tooling separate from
+    // your personal VS Code profile on the host.
+    "customizations": {
+      "vscode": {
+        // ----------------------------------------------------------
+        // EXTENSIONS
+        // ----------------------------------------------------------
+        // These extension IDs are installed automatically when the
+        // dev container starts. Every student gets the same tools
+        // without having to install anything manually.
+        //
+        //  ms-python.python          — core Python language support
+        //                             (run/debug Python files, REPL)
+        //  ms-python.pylance         — fast, smart IntelliSense,
+        //                             type checking, and auto-imports
+        //  ms-python.black-formatter — code formatter; enforces a
+        //                             consistent style automatically
+        //  ms-python.flake8          — linter; highlights style and
+        //                             potential bugs as you type
+        //  ms-azuretools.vscode-docker — Docker integration: browse
+        //                             containers, images, logs in VS Code
+        //  humao.rest-client         — send HTTP requests from .http
+        //                             files directly in the editor
+        //                             (great for testing your API)
+        //  eamodio.gitlens           — enhanced Git history, blame
+        //                             annotations, and code authorship
+        //  github.vscode-github-actions — syntax highlighting and
+        //                             validation for GitHub Actions
+        //                             workflow files (.github/workflows/)
+        "extensions": [
+          "ms-python.python",
+          "ms-python.pylance",
+          "ms-python.black-formatter",
+          "ms-python.flake8",
+          "ms-azuretools.vscode-docker",
+          "humao.rest-client",
+          "eamodio.gitlens",
+          "github.vscode-github-actions"
+        ],
+        // ----------------------------------------------------------
+        // EDITOR SETTINGS
+        // ----------------------------------------------------------
+        // These settings override (or add to) VS Code's defaults
+        // *only* inside this dev container, so they don't affect
+        // your normal editor setup.
+        "settings": {
+          // Tell the Python extension exactly which interpreter to use.
+          // This must match the Python installed in the container image
+          // (set in the Dockerfile / base image).
+          "python.defaultInterpreterPath": "/usr/local/bin/python",
+          // Automatically format every file when you save it,
+          // using whichever formatter is configured for that language.
+          "editor.formatOnSave": true,
+          // For Python files specifically, use Black as the formatter.
+          // Black is an opinionated, zero-configuration formatter that
+          // produces consistent code style across the whole team.
+          "[python]": {
+            "editor.defaultFormatter": "ms-python.black-formatter"
+          },
+          // Enable pytest as the test runner (visible in the Testing
+          // panel on the VS Code sidebar).
+          "python.testing.pytestEnabled": true,
+          // Arguments passed to pytest when running tests:
+          //   "tests/"   — look for tests in the tests/ subdirectory
+          //   "-v"       — verbose output (show each test name)
+          //   "--tb=short" — show a compact traceback on failures
+          //                  (easier to read than the full traceback)
+          "python.testing.pytestArgs": [
+            "tests/",
+            "-v",
+            "--tb=short"
+          ]
+        }
+      }
+    }
+  }

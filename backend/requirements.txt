@@ -1,0 +1,11 @@
+# This file lists the Python dependencies for the backend of your project.
+# You can add any additional dependencies your project requires here.
+
+# fastapi is a modern, fast (high-performance) web framework for building APIs with Python 3.6+ based on standard Python type hints. it automatically generates interactive API documentation (at /docs) and provides a simple and intuitive way to define API endpoints.
+fastapi
+
+# uvicorn is a lightning-fast ASGI server implementation, using uvloop and httptools. it's designed to run fastapi applications in production, providing high performance and low latency. the [standard] extra includes additional dependencies for optimal performance and features.
+uvicorn[standard]
+
+# httpx is a fully featured HTTP client for Python 3, which provides a simple and intuitive API for making HTTP requests. it supports both synchronous and asynchronous programming styles, making it a great choice for testing your API endpoints or making HTTP requests to other services.
+httpx

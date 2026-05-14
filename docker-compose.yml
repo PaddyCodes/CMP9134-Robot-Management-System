@@ -1,0 +1,154 @@
+# ==============================================================
+# WHAT IS DOCKER COMPOSE?
+# ==============================================================
+# Docker Compose is a tool for defining and running *multi-container*
+# Docker applications. Instead of typing long `docker run` commands
+# for every service, you describe the entire system in this single
+# YAML file and start everything with one command:
+#
+#   docker compose up
+#
+# Each top-level entry under "services:" becomes a separate container.
+# Compose creates a private Docker network for them automatically, so
+# every service can reach any other service by using the service *name*
+# as a hostname (e.g. "robot-api", "backend").
+#
+# This file is the PRODUCTION configuration. The dev-container uses an
+# additional override file (docker-compose.devcontainer.yml) on top of
+# this one. See devcontainer.json for how they are composed together.
+# ==============================================================
+
+services:
+
+  # ── Virtual Robot API (provided — do not modify) ──────────────────────
+  #
+  # This service runs a pre-built container image that simulates a real
+  # robot's HTTP API. You talk to it from your backend exactly as you
+  # would talk to a physical robot — great for development without
+  # needing real hardware.
+  robot-api:
+    # "image" pulls a ready-made image from a container registry
+    # (here: GitHub Container Registry, ghcr.io) instead of building
+    # one locally. The tag "latest" always fetches the newest version.
+    image: ghcr.io/francescodelduchetto/cmp9134_2526_robotsim:latest
+
+    # "restart: unless-stopped" means Docker will automatically restart
+    # this container if it crashes — but not if you explicitly stop it.
+    # Other options: "no" (never restart), "always", "on-failure".
+    restart: unless-stopped
+
+    # A healthcheck lets Docker (and other services via depends_on) know
+    # whether this container is actually *ready*, not just running.
+    #
+    #   test     — command to run inside the container; exit 0 = healthy.
+    #              Here we curl the /docs endpoint; if it responds, the
+    #              robot API is up.
+    #   interval — how often to run the check.
+    #   timeout  — how long to wait before treating a check as failed.
+    #   retries  — how many consecutive failures before marking unhealthy.
+    #   start_period — grace period after container start during which
+    #                  failures do NOT count (gives the app time to boot).
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5000/docs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── PostgreSQL database (example — uncomment and configure to use) ───
+  #
+  # If your project needs a relational database, uncomment this block.
+  # postgres:16-alpine is a small, production-quality PostgreSQL image.
+  # You would also uncomment the "volumes" section at the bottom so the
+  # database data persists between container restarts.
+  # database:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  # ...
+
+  # ── FastAPI backend ───────────────────────────────────────────────────
+  #
+  # This is the Python service YOU are writing. It is built from the
+  # Dockerfile in ./backend/ rather than pulled from a registry.
+  backend:
+    build:
+      # "context" is the directory Docker sends to the build daemon;
+      # all COPY instructions in the Dockerfile are relative to this.
+      context: ./backend
+      dockerfile: Dockerfile
+      # Multi-stage Dockerfiles can have several named stages (e.g.
+      # "development" and "production"). "target" selects which stage
+      # to stop at. The production stage typically has no dev tools,
+      # making the final image smaller and more secure.
+      target: production
+
+    restart: unless-stopped
+
+    # Environment variables are injected into the container at runtime.
+    # Your Python code reads them with os.environ or a settings library.
+    # This avoids hardcoding values (URLs, secrets) in source code.
+    #
+    # Syntax:  ${VAR:-default}  means "use $VAR from the host shell if
+    # set, otherwise fall back to 'default'". This makes it easy to
+    # override values without editing this file:
+    #   LOG_LEVEL=debug docker compose up
+    environment:
+      # Inside Docker's network, services reach each other by service name.
+      # So "http://robot-api:5000" resolves to the robot-api container.
+      ROBOT_API_URL: "http://robot-api:5000"
+      LOG_LEVEL:     "${LOG_LEVEL:-info}"
+
+    # "depends_on" controls start *order*. Without it, Compose may start
+    # backend before robot-api is ready, causing connection errors.
+    #
+    # "condition: service_started" — wait until robot-api container is
+    # running (not necessarily healthy). Use "service_healthy" when the
+    # dependency has a healthcheck and you need it fully ready.
+    depends_on:
+      robot-api:
+        condition: service_started
+
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ── Nginx + static frontend ───────────────────────────────────────────
+  #
+  # Nginx serves the static HTML/CSS/JS files that make up the UI.
+  # It also acts as a *reverse proxy*: browser requests for /api/...
+  # are forwarded to the backend, so the browser only ever talks to
+  # one origin (avoiding CORS issues).
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    # "ports" maps a host port to a container port: "host:container".
+    # After this mapping, http://localhost:8080 on your machine reaches
+    # port 80 inside the Nginx container.
+    #
+    # ${GCS_PORT:-8080} lets you choose a different host port via an
+    # environment variable (useful if 8080 is already in use):
+    #   GCS_PORT=9000 docker compose up
+    ports:
+      - "${GCS_PORT:-8080}:80"
+
+    # Use "service_healthy" here because Nginx proxies requests to the
+    # backend: if the backend is not healthy yet, the UI would show
+    # errors immediately. Waiting ensures a working stack from the start.
+    depends_on:
+      backend:
+        condition: service_healthy
+
+# ── Named volumes (optional) ──────────────────────────────────────────
+# Named volumes persist data OUTSIDE the container's filesystem, so
+# database data survives container restarts and re-creates.
+# Uncomment when you enable the database service above.
+# volumes:
+#   db_data:          # uncomment when database service is enabled
+#     name: gcs_db_data

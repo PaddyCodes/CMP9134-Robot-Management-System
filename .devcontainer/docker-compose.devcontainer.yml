@@ -1,0 +1,91 @@
+# ==============================================================
+# WHAT IS THIS FILE?
+# ==============================================================
+# Docker Compose supports *multiple* Compose files that are merged
+# together. This file is a DEV-ONLY override layered on top of
+# docker-compose.yml when VS Code opens the dev container.
+#
+# Key idea — override, don't duplicate:
+#   You only need to list the keys you want to CHANGE. Docker Compose
+#   deep-merges this file with docker-compose.yml, so every key not
+#   mentioned here keeps its value from the base file.
+#
+# Why a separate override file instead of editing docker-compose.yml?
+#   Keeping dev conveniences (bind mounts, relaxed healthchecks) out
+#   of the production Compose file means your production config stays
+#   clean, and you can't accidentally ship dev tooling to production.
+# ==============================================================
+
+# Dev-container overrides — mounts local source into containers so edits
+# are reflected immediately without a rebuild.
+services:
+
+  # ── Backend (dev overrides) ──────────────────────────────────────────
+  backend:
+    build:
+      # Switches the build target from "production" (set in
+      # docker-compose.yml) to "development". The development stage of
+      # the Dockerfile typically installs extra tools (pytest, debuggers)
+      # and may set ENV variables that enable debug mode.
+      target: development
+
+    # Overrides the default CMD from the Dockerfile/base Compose file.
+    # "sleep infinity" keeps the container alive indefinitely without
+    # starting the application. This is intentional:
+    #
+    #   • VS Code attaches to this container as your dev shell.
+    #   • You start uvicorn manually in a VS Code terminal so you can
+    #     see its output, restart it freely, and attach a debugger.
+    #   • If the app crashed, "sleep infinity" keeps the container up
+    #     so you can still open a terminal and investigate.
+    command: "sleep infinity"
+
+    # The production healthcheck curls /health on uvicorn, but uvicorn
+    # is not running (we used "sleep infinity" above). A failing health-
+    # check would block other services. This override replaces the check
+    # with a trivially-passing command ("true") so the container is
+    # always considered healthy in the dev environment.
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 1
+
+    # The base Compose file does not publish backend ports to the host
+    # (traffic flows through the Nginx reverse proxy in production).
+    # The dev container forwards port 8000 via devcontainer.json instead,
+    # so we clear the ports list here to avoid conflicts.
+    ports: []
+
+    volumes:
+      # BIND MOUNT — the most important dev-container concept:
+      # Maps your local source directory into the container at /workspace.
+      #
+      # Format:  "host_path:container_path"
+      #   .           — the devcontainer folder on your host machine
+      #                 (i.e. the repo root, since docker-compose files
+      #                 are resolved relative to this file's directory).
+      #   /workspace  — the path inside the container (matches
+      #                 workspaceFolder in devcontainer.json).
+      #
+      # Effect: any file you save in VS Code is IMMEDIATELY visible
+      # inside the container — no rebuild required. Combined with
+      # uvicorn's --reload flag, the server restarts automatically
+      # whenever you save a Python file.
+      - .:/workspace
+
+  # ── Frontend (dev overrides) ─────────────────────────────────────────
+  frontend:
+    volumes:
+      # Bind-mounts only the static assets directory into Nginx's
+      # document root. Saving an HTML/CSS/JS file on the host is
+      # reflected immediately in the browser on the next page refresh —
+      # no Nginx restart or image rebuild needed.
+      #
+      # Nginx's default document root is /usr/share/nginx/html, so
+      # this is where static files must live inside the container.
+      - ./frontend/public:/usr/share/nginx/html
+
+    # Clear published ports for the same reason as the backend above.
+    # The dev container forwards frontend:80 via devcontainer.json.
+    ports: []
