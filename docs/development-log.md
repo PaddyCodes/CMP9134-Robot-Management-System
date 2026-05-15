@@ -49,3 +49,12 @@ Planned Next Steps:
 - Improve frontend dashboard interaction.
 - Implement authentication and RBAC.
 - Add database-backed mission logging.
+
+15 May 2026:
+- Map and Sensor endpoints implemented
+    - Telemetry verified
+    - Screenshots captured
+- Frontend grid rendering
+- robot overlay movement
+dashboard testing
+- Screenshots captures as evidence
