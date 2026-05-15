@@ -104,10 +104,8 @@ async def get_status():
 async def move_robot(command: MoveCommand):
     """Send the robot to an absolute grid position (x, y).
 
-    The request body must be JSON with integer fields ``x`` and ``y``, both
-    in the range 0–20.  Pydantic enforces the integer type automatically;
-    The request body must be JSON with integer fields ``x`` and ``y``. 
-    Pydantic validates the integer type automatically. Coordinate range 
+    The request body must be JSON with integer fields ``x`` and ``y``.
+    Pydantic validates the integer type automatically. Coordinate range
     validation will be tightened in a later validation/testing branch.
 
     Example request body::
@@ -141,6 +139,48 @@ async def reset_robot():
         return result
     except RobotConnectionError as exc:
         logger.warning("Reset command failed: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+# ── Map endpoint ───────────────────────────────────────────────────────────
+@app.get("/api/map")
+async def get_map():
+    """Return the robot's current 2-D environment map.
+
+    The simulator returns a grid of cells representing the traversable space,
+    obstacles, and the robot's path history.  The dashboard uses this data
+    to render the visual grid required by the assessment brief.
+
+    Returns the simulator's map payload directly, or a 503 JSON error if
+    the robot is unreachable.
+    """
+    try:
+        result = await robot.get_map()
+        logger.info("Map data retrieved successfully")
+        return result
+    except RobotConnectionError as exc:
+        logger.warning("Could not retrieve map: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+# ── Sensor endpoint ───────────────────────────────────────────────────────
+@app.get("/api/sensor")
+async def get_sensors():
+    """Return the robot's current sensor readings.
+
+    Returns distance and obstacle data for all cardinal directions, displayed
+    as real-time telemetry on the dashboard alongside battery level and
+    position.
+
+    Returns the simulator's sensor payload directly, or a 503 JSON error if
+    the robot is unreachable.
+    """
+    try:
+        result = await robot.get_sensors()
+        logger.info("Sensor data retrieved successfully")
+        return result
+    except RobotConnectionError as exc:
+        logger.warning("Could not retrieve sensor data: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc))
 
 
