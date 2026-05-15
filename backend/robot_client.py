@@ -52,7 +52,7 @@ class RobotClient:
     # ------------------------------------------------------------------
     # Internal helper – single place for retry / error logic
     # ------------------------------------------------------------------
-    async def _request(
+    async def _request(  # noqa: C901
         self,
         method: str,
         path: str,
