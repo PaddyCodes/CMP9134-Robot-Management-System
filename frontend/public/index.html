@@ -48,6 +48,7 @@
       background: #c62828;
     }
 
+    /* ── Status cards ───────────────────────────────────────────────────── */
     main {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -82,6 +83,151 @@
     .stat-card.danger .value {
       color: #c62828;
     }
+
+    /* ── Map section ────────────────────────────────────────────────────── */
+    .map-section {
+      margin: 0 1rem 1.5rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+      padding: 1rem 1.2rem;
+    }
+
+    .map-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .map-section-header h2 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: #5a6a85;
+      letter-spacing: 1px;
+    }
+
+    /* Map status badge shown while loading or on error */
+    .map-badge {
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .map-badge.loading {
+      background: #e8f4ff;
+      color: #1565c0;
+    }
+
+    .map-badge.error {
+      background: #fdecea;
+      color: #c62828;
+    }
+
+    .map-badge.ok {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    /* Outer wrapper centres the grid and caps its width */
+    .map-wrapper {
+      display: flex;
+      justify-content: center;
+    }
+
+    /*
+     * The grid itself: CSS Grid with 21 equal columns.
+     * --cols is set to 21 via JS to keep it DRY.
+     * Each cell is a fixed 24 px square so the full grid is 504 px wide,
+     * which fits comfortably on any laptop screen.
+     */
+    .robot-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--cols, 21), 24px);
+      grid-template-rows: repeat(var(--rows, 21), 24px);
+      gap: 1px;
+      background: #d0d7e3;   /* gap colour — acts as grid lines */
+      border: 1px solid #d0d7e3;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    /* ── Individual cell states ─────────────────────────────────────────── */
+    .cell {
+      width: 24px;
+      height: 24px;
+      position: relative;
+      transition: background 0.15s ease;
+    }
+
+    /* Value 0 — traversable empty space */
+    .cell.empty {
+      background: #f8fafc;
+    }
+
+    /* Value 1 — obstacle / wall */
+    .cell.obstacle {
+      background: #1a2a45;
+    }
+
+    /* Robot position overlay — sits on top of whatever cell type is beneath */
+    .cell.robot {
+      background: #0a2342;  /* darker navy so it's visible on both cell types */
+    }
+
+    /* The robot icon dot inside the cell */
+    .cell.robot::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 50%;
+      background: #26a69a;   /* teal — matches the "connected" indicator colour */
+      box-shadow: 0 0 6px rgba(38, 166, 154, 0.8);
+    }
+
+    /* Axis labels along the bottom and left */
+    .map-axis {
+      display: flex;
+      justify-content: center;
+      margin-top: 4px;
+      font-size: 0.6rem;
+      color: #8a96a8;
+      letter-spacing: 0.5px;
+    }
+
+    /* Legend */
+    .map-legend {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.6rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.68rem;
+      color: #5a6a85;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .legend-swatch.empty   { background: #f8fafc; border: 1px solid #d0d7e3; }
+    .legend-swatch.obstacle { background: #1a2a45; }
+    .legend-swatch.robot {
+      background: #0a2342;
+      position: relative;
+      border-radius: 50%;
+    }
   </style>
 </head>
 
@@ -95,6 +241,7 @@
     </div>
   </header>
 
+  <!-- ── Status cards (unchanged) ──────────────────────────────────────── -->
   <main>
     <div class="stat-card" id="card-pos">
       <div class="label">Position</div>
@@ -114,10 +261,48 @@
     </div>
   </main>
 
+  <!-- ── Map / grid section ─────────────────────────────────────────────── -->
+  <section class="map-section">
+    <div class="map-section-header">
+      <h2>Environment Map</h2>
+      <span id="map-badge" class="map-badge loading">Loading…</span>
+    </div>
+
+    <div class="map-wrapper">
+      <!--
+        The grid cells are injected here by buildGrid() / renderMap().
+        CSS Grid columns/rows are set via CSS custom properties --cols / --rows
+        so the layout automatically matches whatever dimensions the API returns.
+      -->
+      <div class="robot-grid" id="robot-grid"></div>
+    </div>
+
+    <div class="map-axis" id="map-axis"><!-- x-axis label injected by JS --></div>
+
+    <div class="map-legend">
+      <span class="legend-item">
+        <span class="legend-swatch empty"></span> Empty
+      </span>
+      <span class="legend-item">
+        <span class="legend-swatch obstacle"></span> Obstacle
+      </span>
+      <span class="legend-item">
+        <span class="legend-swatch robot"></span> Robot
+      </span>
+    </div>
+  </section>
+
   <script>
     const $ = id => document.getElementById(id);
 
-    async function poll() {
+    // ── State ──────────────────────────────────────────────────────────────
+    // We track the robot's position so the map render always has the latest
+    // values, even if one of the two fetches (status vs map) finishes first.
+    let robotPos = null;   // { x, y } or null if not yet known
+    let mapGrid  = null;   // 2-D array from /api/map, or null
+
+    // ── Status polling and robot-position updates ──────────────────────────────
+    async function pollStatus() {
       try {
         const r = await fetch('/api/status');
         if (!r.ok) throw new Error(r.statusText);
@@ -135,14 +320,137 @@
           const card = $('card-battery');
           card.className = 'stat-card' + (d.battery < 20 ? ' danger' : d.battery < 40 ? ' warn' : '');
         }
+
+        // Update robot position and re-render the map overlay if we already
+        // have map data.  This keeps the dot moving without re-fetching the
+        // whole map on every status poll.
+        if (d.position) {
+          robotPos = { x: d.position.x, y: d.position.y };
+          if (mapGrid) renderMap(mapGrid);
+        }
+
       } catch {
         $('conn-dot').className = 'conn-indicator error';
         $('conn-label').textContent = 'Unreachable';
       }
     }
 
-    poll();
-    setInterval(poll, 3000);
+    // ── Map fetch ──────────────────────────────────────────────────────────
+    async function fetchMap() {
+      const badge = $('map-badge');
+      try {
+        const r = await fetch('/api/map');
+        if (!r.ok) throw new Error(r.statusText);
+        const data = await r.json();
+
+        /*
+        * The simulator returns the map in a "grid" field.
+        * Each element is a row (array of integers):
+        *   0 = empty traversable cell
+        *   1 = obstacle / wall
+        */
+        const grid = data.grid ?? null;
+        if (!Array.isArray(grid)) throw new Error('Unexpected map format');
+
+        mapGrid = grid;
+        badge.className  = 'map-badge ok';
+        badge.textContent = `${grid.length}×${grid[0].length}`;
+        renderMap(grid);
+
+      } catch (err) {
+        badge.className  = 'map-badge error';
+        badge.textContent = 'Map unavailable';
+        console.warn('Map fetch failed:', err);
+      }
+    }
+
+    // ── Grid builder — called once when map data first arrives ─────────────
+    //
+    // We build the full set of <div> cells once and store references to them
+    // in a flat array (`cells`).  Subsequent re-renders only swap CSS classes
+    // rather than rebuilding the DOM — this keeps updates fast and avoids
+    // layout thrashing when the status poll fires every 3 s.
+    const cellEls = [];   // flat array: cellEls[row * cols + col]
+
+    function buildGrid(rows, cols) {
+      const grid = $('robot-grid');
+      grid.innerHTML = '';          // clear any previous content
+      cellEls.length = 0;
+
+      // Set CSS custom properties so the grid-template-columns/rows rules
+      // in the stylesheet automatically match the actual map dimensions.
+      grid.style.setProperty('--cols', cols);
+      grid.style.setProperty('--rows', rows);
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          // Store grid coords as data attributes for debugging / future use
+          cell.dataset.row = row;
+          cell.dataset.col = col;
+          grid.appendChild(cell);
+          cellEls.push(cell);
+        }
+      }
+
+      // Build the x-axis label ("X: 0 … 20")
+      $('map-axis').textContent = `X: 0 → ${cols - 1}   |   Y: 0 → ${rows - 1}`;
+    }
+
+    // ── Map renderer — called on every map fetch AND every status poll ─────
+    //
+    // The map API returns rows in row-major order where row 0 is y=0.
+    // We iterate top-to-bottom so CSS Grid's natural left-to-right,
+    // top-to-bottom flow matches the coordinate system without transforms.
+    function renderMap(grid) {
+      const rows = grid.length;
+      const cols = grid[0].length;
+
+      // Build the DOM structure the first time, or if dimensions changed
+      if (cellEls.length !== rows * cols) {
+        buildGrid(rows, cols);
+      }
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const cell = cellEls[row * cols + col];
+          const value = grid[row][col];
+
+          // Check whether the robot is on this cell.
+          // robotPos.x maps to column index; robotPos.y maps to row index.
+          const isRobot = robotPos && robotPos.x === col && robotPos.y === row;
+
+          if (isRobot) {
+            cell.className = 'cell robot';
+          } else if (value === 1) {
+            cell.className = 'cell obstacle';
+          } else {
+            cell.className = 'cell empty';
+          }
+
+          cell.title = isRobot
+            ? `Robot at (${col}, ${row})`
+            : value === 1
+              ? `Obstacle at (${col}, ${row})`
+              : `Empty cell at (${col}, ${row})`;
+        }
+      }
+    }
+
+    // ── Polling schedule ───────────────────────────────────────────────────
+    //
+    // Status: every 3 s (matches original behaviour).
+    // Map:    every 10 s — the environment layout rarely changes, so polling
+    //         it less frequently reduces unnecessary load on the simulator.
+    //         The robot's position on the map is always updated by the status
+    //         poll, so the dot moves smoothly even between map refreshes.
+
+    pollStatus();
+    fetchMap();
+
+    setInterval(pollStatus, 3000);
+    setInterval(fetchMap, 10000);
   </script>
 
 </body>
