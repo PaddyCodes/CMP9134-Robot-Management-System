@@ -7,9 +7,6 @@ Repository setup, backend robot API integration, and FastAPI route implementatio
 AI Tool Used
 - Claude Sonnet 4.6
 
-Task 1: Repository Planning and Git Workflow
-Prompt Summary
-
 Task 1 — Robot Client Extension
 
 Requested assistance extending robot_client.py with:
@@ -74,3 +71,84 @@ The verification process identified:
 - endpoint naming mismatches
 - unnecessary legacy workshop code
 - inaccurate HTTP error documentation
+
+15 May 2026
+
+Task Category:
+Frontend telemetry visualisation, environment map rendering, and simulator API integration.
+
+AI Tool Used
+- Claude Sonnet 4.6
+
+Task 1 — Backend Map and Sensor Route Integration
+Prompt Summary
+
+Requested review and guidance for implementing:
+- GET /api/map
+- GET /api/sensor
+within the existing FastAPI backend.
+
+Verification & Modification
+- Verified simulator endpoint naming against the Swagger UI documentation.
+- Corrected endpoint usage from /api/sensors to /api/sensor.
+- Preserved existing FastAPI route structure and RobotConnectionError handling pattern.
+- Confirmed response payload structure matched:
+    - map grid data
+    - sensor telemetry
+    - lidar array output
+- Verified Docker/Nginx reverse proxy routing using relative `/api/...` frontend requests.
+
+Manual Testing Performed
+- Successfully tested:
+    - GET /api/map
+    - GET /api/sensor
+- Verified endpoints through:
+    - localhost:8080/api/map
+    - localhost:8080/api/sensor
+- Confirmed correct JSON responses from the simulator container.
+
+Task 2 — Frontend Environment Map Rendering
+
+Prompt Summary
+
+Requested review and guidance for implementing:
+- dynamic 21×21 environment grid rendering,
+- obstacle rendering,
+- robot position overlay,
+- dashboard telemetry integration.
+
+Verification & Modification
+- Verified `data.grid` matched the simulator response structure.
+- Confirmed robot coordinate mapping:
+    - x → column
+    - y → row
+- Removed unsupported fallback handling for undocumented API fields.
+- Added accessibility tooltip labels for:
+    - empty cells,
+    - obstacle cells,
+    - robot position cells.
+- Confirmed frontend requests used relative `/api/...` paths instead of hardcoded backend URLs.
+
+Manual Testing Performed
+- Verified:
+    - map grid renders correctly,
+    - obstacle cells display correctly,
+    - robot position updates after movement commands,
+    - dashboard telemetry remains functional during polling.
+- Confirmed dashboard functionality through:
+    - localhost:8080
+
+Reflection
+
+AI assistance accelerated:
+- frontend rendering review,
+- telemetry integration review,
+- JavaScript polling implementation,
+- debugging of coordinate mapping behaviour.
+
+However, all AI outputs were manually reviewed, corrected where necessary, and practically tested before being committed to the repository.
+
+The verification process identified:
+- incorrect sensor endpoint naming,
+- unnecessary undocumented API fallback handling,
+- coordinate mapping assumptions requiring manual validation.

@@ -51,10 +51,21 @@ Planned Next Steps:
 - Add database-backed mission logging.
 
 15 May 2026:
-- Map and Sensor endpoints implemented
-    - Telemetry verified
-    - Screenshots captured
-- Frontend grid rendering
-- robot overlay movement
-dashboard testing
-- Screenshots captures as evidence
+Completed:
+- Added backend routes for `/api/map` and `/api/sensor`.
+- Verified both endpoints through the Docker/Nginx proxy at `localhost:8080`.
+- Added frontend environment map rendering to the dashboard.
+- Rendered the robot's current position on the 21x21 map grid.
+- Displayed obstacle cells using the simulator map data.
+- Verified the robot marker updates after movement commands.
+- Captured screenshots of successful dashboard and API behaviour.
+
+CHallenges:
+- Confirmed the sensor endpoint should use singular `/api/sensor`.
+- Checked frontend coordinate handling so `x` maps to columns and `y` maps to rows.
+- Avoided hardcoding backend ports by using relative `/api/...` paths through Nginx.
+
+Next Steps:
+- Create report skeleton.
+- Begin authentication scaffolding.
+- Add testing evidence.
