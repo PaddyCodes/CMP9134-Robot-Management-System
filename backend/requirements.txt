@@ -9,3 +9,13 @@ uvicorn[standard]
 
 # httpx is a fully featured HTTP client for Python 3, which provides a simple and intuitive API for making HTTP requests. it supports both synchronous and asynchronous programming styles, making it a great choice for testing your API endpoints or making HTTP requests to other services.
 httpx
+
+# python-jose provides JWT (JSON Web Token) creation and verification for
+# authentication. JWTs allow the backend to issue signed access tokens that
+# clients include in the Authorization header when accessing protected routes.
+python-jose[cryptography]
+
+# python-multipart allows FastAPI to read form-encoded login data.
+# It is required when using OAuth2PasswordRequestForm for username/password
+# authentication through the automatically generated Swagger UI.
+python-multipart
