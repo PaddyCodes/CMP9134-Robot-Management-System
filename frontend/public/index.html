@@ -48,6 +48,121 @@
       background: #c62828;
     }
 
+    /* ── Login overlay ──────────────────────────────────────────────────── */
+    /*
+     * The login overlay sits on top of the entire page until the user
+     * authenticates.  Once a valid JWT is returned from POST /token the
+     * overlay is hidden and the dashboard becomes visible.
+     *
+     * z-index: 100 ensures it covers the header and all dashboard content.
+     */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(10, 35, 66, 0.92); /* dark navy with slight transparency */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #login-overlay.hidden {
+      display: none;
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 10px;
+      padding: 2rem 2.4rem;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .login-card h2 {
+      font-size: 1rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #0a2342;
+      margin-bottom: 0.25rem;
+    }
+
+    .login-card .login-subtitle {
+      font-size: 0.72rem;
+      color: #5a6a85;
+      margin-bottom: 1.4rem;
+    }
+
+    .login-card label {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: #5a6a85;
+      margin-bottom: 0.3rem;
+      margin-top: 0.8rem;
+    }
+
+    .login-card input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d0d7e3;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: #0a2342;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .login-card input:focus {
+      border-color: #26a69a;
+    }
+
+    .login-btn {
+      margin-top: 1.2rem;
+      width: 100%;
+      padding: 0.6rem;
+      background: #0a2342;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .login-btn:hover {
+      background: #163a6b;
+    }
+
+    .login-btn:disabled {
+      background: #8a96a8;
+      cursor: not-allowed;
+    }
+
+    /* Error message shown below the button on failed login */
+    #login-error {
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      color: #c62828;
+      text-align: center;
+      min-height: 1rem; /* reserves space so layout does not jump */
+    }
+
+    /* ── User badge shown in header after login ─────────────────────────── */
+    #user-badge {
+      font-size: 0.75rem;
+      color: #ccc;
+      margin-right: 0.75rem;
+      display: none; /* hidden until login succeeds */
+    }
+
+    #user-badge span {
+      color: #26a69a;
+      font-weight: 600;
+    }
+
     /* ── Status cards ───────────────────────────────────────────────────── */
     main {
       display: grid;
@@ -107,7 +222,6 @@
       letter-spacing: 1px;
     }
 
-    /* Map status badge shown while loading or on error */
     .map-badge {
       font-size: 0.68rem;
       padding: 2px 8px;
@@ -131,7 +245,6 @@
       color: #2e7d32;
     }
 
-    /* Outer wrapper centres the grid and caps its width */
     .map-wrapper {
       display: flex;
       justify-content: center;
@@ -148,7 +261,7 @@
       grid-template-columns: repeat(var(--cols, 21), 24px);
       grid-template-rows: repeat(var(--rows, 21), 24px);
       gap: 1px;
-      background: #d0d7e3;   /* gap colour — acts as grid lines */
+      background: #d0d7e3;
       border: 1px solid #d0d7e3;
       border-radius: 4px;
       overflow: hidden;
@@ -162,32 +275,19 @@
       transition: background 0.15s ease;
     }
 
-    /* Value 0 — traversable empty space */
-    .cell.empty {
-      background: #f8fafc;
-    }
+    .cell.empty    { background: #f8fafc; }
+    .cell.obstacle { background: #1a2a45; }
+    .cell.robot    { background: #0a2342; }
 
-    /* Value 1 — obstacle / wall */
-    .cell.obstacle {
-      background: #1a2a45;
-    }
-
-    /* Robot position overlay — sits on top of whatever cell type is beneath */
-    .cell.robot {
-      background: #0a2342;  /* darker navy so it's visible on both cell types */
-    }
-
-    /* The robot icon dot inside the cell */
     .cell.robot::after {
       content: '';
       position: absolute;
       inset: 4px;
       border-radius: 50%;
-      background: #26a69a;   /* teal — matches the "connected" indicator colour */
+      background: #26a69a;
       box-shadow: 0 0 6px rgba(38, 166, 154, 0.8);
     }
 
-    /* Axis labels along the bottom and left */
     .map-axis {
       display: flex;
       justify-content: center;
@@ -197,7 +297,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* Legend */
     .map-legend {
       display: flex;
       gap: 1rem;
@@ -221,27 +320,46 @@
       flex-shrink: 0;
     }
 
-    .legend-swatch.empty   { background: #f8fafc; border: 1px solid #d0d7e3; }
+    .legend-swatch.empty    { background: #f8fafc; border: 1px solid #d0d7e3; }
     .legend-swatch.obstacle { background: #1a2a45; }
-    .legend-swatch.robot {
-      background: #0a2342;
-      position: relative;
-      border-radius: 50%;
-    }
+    .legend-swatch.robot    { background: #0a2342; border-radius: 50%; }
   </style>
 </head>
 
 <body>
 
+  <!-- ── Login overlay ────────────────────────────────────────────────────
+       Shown on page load.  Hidden by hideLoginOverlay() once a valid JWT
+       is returned from POST /token.
+  ──────────────────────────────────────────────────────────────────────── -->
+  <div id="login-overlay">
+    <div class="login-card">
+      <h2>⚙ Ground Control Station</h2>
+      <p class="login-subtitle">Sign in to access the dashboard</p>
+
+      <label for="username">Username</label>
+      <input type="text" id="username" placeholder="commander" autocomplete="username" />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+
+      <button class="login-btn" id="login-btn" onclick="handleLogin()">Sign In</button>
+      <div id="login-error"></div>
+    </div>
+  </div>
+
+  <!-- ── Header ───────────────────────────────────────────────────────── -->
   <header>
     <h1>⚙ GROUND CONTROL STATION</h1>
-    <div>
+    <div style="display:flex;align-items:center;">
+      <!-- User badge: hidden until login; shows username and role -->
+      <span id="user-badge"></span>
       <span id="conn-dot" class="conn-indicator error"></span>
       <span id="conn-label" style="font-size:.8rem;color:#ccc">Connecting…</span>
     </div>
   </header>
 
-  <!-- ── Status cards (unchanged) ──────────────────────────────────────── -->
+  <!-- ── Status cards ──────────────────────────────────────────────────── -->
   <main>
     <div class="stat-card" id="card-pos">
       <div class="label">Position</div>
@@ -269,15 +387,10 @@
     </div>
 
     <div class="map-wrapper">
-      <!--
-        The grid cells are injected here by buildGrid() / renderMap().
-        CSS Grid columns/rows are set via CSS custom properties --cols / --rows
-        so the layout automatically matches whatever dimensions the API returns.
-      -->
       <div class="robot-grid" id="robot-grid"></div>
     </div>
 
-    <div class="map-axis" id="map-axis"><!-- x-axis label injected by JS --></div>
+    <div class="map-axis" id="map-axis"></div>
 
     <div class="map-legend">
       <span class="legend-item">
@@ -295,16 +408,120 @@
   <script>
     const $ = id => document.getElementById(id);
 
-    // ── State ──────────────────────────────────────────────────────────────
-    // We track the robot's position so the map render always has the latest
-    // values, even if one of the two fetches (status vs map) finishes first.
-    let robotPos = null;   // { x, y } or null if not yet known
-    let mapGrid  = null;   // 2-D array from /api/map, or null
+    // ── Authentication state ───────────────────────────────────────────────
+    //
+    // The JWT is stored in a plain JavaScript variable (in-memory only).
+    // This is intentional for this coursework: storing a token in
+    // localStorage or a cookie would require additional security measures
+    // (e.g. HttpOnly cookies, CSRF protection) that are out of scope here.
+    // The trade-off is that the token is lost on page refresh, requiring
+    // the user to log in again — acceptable for a coursework prototype.
+    let accessToken = null;
 
-    // ── Status polling and robot-position updates ──────────────────────────────
+    // ── Authenticated fetch helper ─────────────────────────────────────────
+    //
+    // All requests to protected backend endpoints must include the JWT in
+    // the Authorization header as a Bearer token.  This helper wraps the
+    // native fetch() call and injects the header automatically, so every
+    // polling function benefits without repeating the header logic.
+    //
+    //   Authorization: Bearer <token>
+    function authFetch(url, options = {}) {
+      return fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+    }
+
+    // ── Login handler ──────────────────────────────────────────────────────
+    //
+    // POST /token expects application/x-www-form-urlencoded (the OAuth2
+    // Password flow standard), NOT JSON.  URLSearchParams automatically
+    // encodes the body in the correct format.
+    async function handleLogin() {
+      const btn      = $('login-btn');
+      const errorEl  = $('login-error');
+      const username = $('username').value.trim();
+      const password = $('password').value;
+
+      // Basic client-side guard — the server will also validate
+      if (!username || !password) {
+        errorEl.textContent = 'Please enter a username and password.';
+        return;
+      }
+
+      // Disable the button while the request is in flight to prevent
+      // duplicate submissions if the user clicks quickly
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+      errorEl.textContent = '';
+
+      try {
+        // Step 1: Exchange credentials for a JWT
+        // Content-Type is set implicitly by URLSearchParams to
+        // application/x-www-form-urlencoded — do not override it manually
+        const res = await fetch('/token', {
+          method: 'POST',
+          body: new URLSearchParams({ username, password }),
+        });
+
+        if (!res.ok) {
+          // 401 Unauthorized = wrong credentials
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.detail || 'Login failed. Check your credentials.');
+        }
+
+        const data = await res.json();
+
+        // Step 2: Store the token in memory for all subsequent requests
+        accessToken = data.access_token;
+
+        // Step 3: Fetch the user's profile to display role in the header
+        // GET /api/me is a protected endpoint — authFetch adds the Bearer header
+        const meRes = await authFetch('/api/me');
+        if (meRes.ok) {
+          const me = await meRes.json();
+          // Show username and role in the header, then hide the login overlay
+          $('user-badge').innerHTML =
+            `<span>${me.username}</span>&nbsp;(${me.role})&nbsp;·&nbsp;`;
+          $('user-badge').style.display = 'inline';
+        }
+
+        // Step 4: Hide the overlay and start the dashboard polling loops
+        $('login-overlay').classList.add('hidden');
+        startDashboard();
+
+      } catch (err) {
+        // Show the error message below the login button
+        errorEl.textContent = err.message;
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    }
+
+    // Allow pressing Enter in the password field to submit the form
+    $('password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    // ── Dashboard polling ──────────────────────────────────────────────────
+    //
+    // startDashboard() is called once after a successful login.
+    // It runs the first poll immediately and then schedules repeating
+    // intervals — the same timing as before (status: 3 s, map: 10 s).
+
+    // ── State ─────────────────────────────────────────────────────────────
+    let robotPos = null;  // { x, y } or null if not yet known
+    let mapGrid  = null;  // 2-D array from /api/map, or null
+
+    // ── Status polling ─────────────────────────────────────────────────────
     async function pollStatus() {
       try {
-        const r = await fetch('/api/status');
+        // authFetch injects Authorization: Bearer <token> automatically
+        const r = await authFetch('/api/status');
         if (!r.ok) throw new Error(r.statusText);
         const d = await r.json();
 
@@ -339,26 +556,27 @@
     async function fetchMap() {
       const badge = $('map-badge');
       try {
-        const r = await fetch('/api/map');
+        // authFetch injects Authorization: Bearer <token> automatically
+        const r = await authFetch('/api/map');
         if (!r.ok) throw new Error(r.statusText);
         const data = await r.json();
 
         /*
-        * The simulator returns the map in a "grid" field.
-        * Each element is a row (array of integers):
-        *   0 = empty traversable cell
-        *   1 = obstacle / wall
-        */
+         * The simulator returns the map in a "grid" field.
+         * Each element is a row (array of integers):
+         *   0 = empty traversable cell
+         *   1 = obstacle / wall
+         */
         const grid = data.grid ?? null;
         if (!Array.isArray(grid)) throw new Error('Unexpected map format');
 
         mapGrid = grid;
-        badge.className  = 'map-badge ok';
+        badge.className   = 'map-badge ok';
         badge.textContent = `${grid.length}×${grid[0].length}`;
         renderMap(grid);
 
       } catch (err) {
-        badge.className  = 'map-badge error';
+        badge.className   = 'map-badge error';
         badge.textContent = 'Map unavailable';
         console.warn('Map fetch failed:', err);
       }
@@ -367,18 +585,16 @@
     // ── Grid builder — called once when map data first arrives ─────────────
     //
     // We build the full set of <div> cells once and store references to them
-    // in a flat array (`cells`).  Subsequent re-renders only swap CSS classes
-    // rather than rebuilding the DOM — this keeps updates fast and avoids
-    // layout thrashing when the status poll fires every 3 s.
-    const cellEls = [];   // flat array: cellEls[row * cols + col]
+    // in a flat array (`cellEls`).  Subsequent re-renders only swap CSS
+    // classes rather than rebuilding the DOM — this keeps updates fast and
+    // avoids layout thrashing when the status poll fires every 3 s.
+    const cellEls = [];  // flat array: cellEls[row * cols + col]
 
     function buildGrid(rows, cols) {
       const grid = $('robot-grid');
-      grid.innerHTML = '';          // clear any previous content
+      grid.innerHTML = '';
       cellEls.length = 0;
 
-      // Set CSS custom properties so the grid-template-columns/rows rules
-      // in the stylesheet automatically match the actual map dimensions.
       grid.style.setProperty('--cols', cols);
       grid.style.setProperty('--rows', rows);
 
@@ -386,7 +602,6 @@
         for (let col = 0; col < cols; col++) {
           const cell = document.createElement('div');
           cell.className = 'cell';
-          // Store grid coords as data attributes for debugging / future use
           cell.dataset.row = row;
           cell.dataset.col = col;
           grid.appendChild(cell);
@@ -394,7 +609,6 @@
         }
       }
 
-      // Build the x-axis label ("X: 0 … 20")
       $('map-axis').textContent = `X: 0 → ${cols - 1}   |   Y: 0 → ${rows - 1}`;
     }
 
@@ -407,18 +621,16 @@
       const rows = grid.length;
       const cols = grid[0].length;
 
-      // Build the DOM structure the first time, or if dimensions changed
       if (cellEls.length !== rows * cols) {
         buildGrid(rows, cols);
       }
 
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-          const cell = cellEls[row * cols + col];
+          const cell  = cellEls[row * cols + col];
           const value = grid[row][col];
 
-          // Check whether the robot is on this cell.
-          // robotPos.x maps to column index; robotPos.y maps to row index.
+          // robotPos.x maps to column index; robotPos.y maps to row index
           const isRobot = robotPos && robotPos.x === col && robotPos.y === row;
 
           if (isRobot) {
@@ -438,19 +650,13 @@
       }
     }
 
-    // ── Polling schedule ───────────────────────────────────────────────────
-    //
-    // Status: every 3 s (matches original behaviour).
-    // Map:    every 10 s — the environment layout rarely changes, so polling
-    //         it less frequently reduces unnecessary load on the simulator.
-    //         The robot's position on the map is always updated by the status
-    //         poll, so the dot moves smoothly even between map refreshes.
-
-    pollStatus();
-    fetchMap();
-
-    setInterval(pollStatus, 3000);
-    setInterval(fetchMap, 10000);
+    // ── Dashboard startup — called once after successful login ─────────────
+    function startDashboard() {
+      pollStatus();
+      fetchMap();
+      setInterval(pollStatus, 3000);
+      setInterval(fetchMap, 10000);
+    }
   </script>
 
 </body>
