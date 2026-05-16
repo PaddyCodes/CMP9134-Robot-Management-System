@@ -40,35 +40,21 @@
       margin-right: 6px;
     }
 
-    .conn-indicator.ok {
-      background: #26a69a;
-    }
-
-    .conn-indicator.error {
-      background: #c62828;
-    }
+    .conn-indicator.ok    { background: #26a69a; }
+    .conn-indicator.error { background: #c62828; }
 
     /* ── Login overlay ──────────────────────────────────────────────────── */
-    /*
-     * The login overlay sits on top of the entire page until the user
-     * authenticates.  Once a valid JWT is returned from POST /token the
-     * overlay is hidden and the dashboard becomes visible.
-     *
-     * z-index: 100 ensures it covers the header and all dashboard content.
-     */
     #login-overlay {
       position: fixed;
       inset: 0;
       z-index: 100;
-      background: rgba(10, 35, 66, 0.92); /* dark navy with slight transparency */
+      background: rgba(10, 35, 66, 0.92);
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    #login-overlay.hidden {
-      display: none;
-    }
+    #login-overlay.hidden { display: none; }
 
     .login-card {
       background: white;
@@ -113,9 +99,7 @@
       transition: border-color 0.15s;
     }
 
-    .login-card input:focus {
-      border-color: #26a69a;
-    }
+    .login-card input:focus { border-color: #26a69a; }
 
     .login-btn {
       margin-top: 1.2rem;
@@ -132,36 +116,26 @@
       transition: background 0.15s;
     }
 
-    .login-btn:hover {
-      background: #163a6b;
-    }
+    .login-btn:hover    { background: #163a6b; }
+    .login-btn:disabled { background: #8a96a8; cursor: not-allowed; }
 
-    .login-btn:disabled {
-      background: #8a96a8;
-      cursor: not-allowed;
-    }
-
-    /* Error message shown below the button on failed login */
     #login-error {
       margin-top: 0.75rem;
       font-size: 0.75rem;
       color: #c62828;
       text-align: center;
-      min-height: 1rem; /* reserves space so layout does not jump */
+      min-height: 1rem;
     }
 
-    /* ── User badge shown in header after login ─────────────────────────── */
+    /* ── User badge ─────────────────────────────────────────────────────── */
     #user-badge {
       font-size: 0.75rem;
       color: #ccc;
       margin-right: 0.75rem;
-      display: none; /* hidden until login succeeds */
+      display: none;
     }
 
-    #user-badge span {
-      color: #26a69a;
-      font-weight: 600;
-    }
+    #user-badge span { color: #26a69a; font-weight: 600; }
 
     /* ── Status cards ───────────────────────────────────────────────────── */
     main {
@@ -191,16 +165,13 @@
       margin-top: 6px;
     }
 
-    .stat-card.warn .value {
-      color: #e8a020;
-    }
+    .stat-card.warn .value   { color: #e8a020; }
+    .stat-card.danger .value { color: #c62828; }
 
-    .stat-card.danger .value {
-      color: #c62828;
-    }
-
-    /* ── Map section ────────────────────────────────────────────────────── */
-    .map-section {
+    /* ── Shared section wrapper ─────────────────────────────────────────── */
+    /* Both the controls panel and the map card share this base style so   */
+    /* they look visually consistent without duplicating CSS.               */
+    .dashboard-section {
       margin: 0 1rem 1.5rem;
       background: white;
       border-radius: 8px;
@@ -208,20 +179,96 @@
       padding: 1rem 1.2rem;
     }
 
-    .map-section-header {
+    .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 0.75rem;
     }
 
-    .map-section-header h2 {
+    .section-header h2 {
       font-size: 0.72rem;
       text-transform: uppercase;
       color: #5a6a85;
       letter-spacing: 1px;
     }
 
+    /* ── Robot Controls panel ───────────────────────────────────────────── */
+    /*
+     * The controls are laid out as a 3-column CSS Grid so the directional
+     * buttons sit in a compass-rose arrangement:
+     *
+     *   [ empty ] [  Up  ] [ empty ]
+     *   [  Left ] [ Reset] [ Right ]
+     *   [ empty ] [ Down ] [ empty ]
+     *
+     * The Reset button occupies the centre cell and uses a distinct colour
+     * to distinguish it from the directional commands.
+     */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-rows: repeat(3, 56px);
+      gap: 6px;
+      justify-content: center;
+    }
+
+    /* Base style shared by all control buttons */
+    .ctrl-btn {
+      width: 56px;
+      height: 56px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    /* Directional buttons — dark navy, matching the header */
+    .ctrl-btn.dir {
+      background: #0a2342;
+    }
+
+    .ctrl-btn.dir:hover:not(:disabled) { background: #163a6b; }
+
+    /* Reset button — teal accent to visually separate it from move commands */
+    .ctrl-btn.reset-btn {
+      background: #1a7a72;
+      font-size: 0.65rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .ctrl-btn.reset-btn:hover:not(:disabled) { background: #26a69a; }
+
+    /* Disabled state used while a request is in-flight */
+    .ctrl-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Invisible placeholder cell — fills the four corner grid positions */
+    .ctrl-empty { width: 56px; height: 56px; }
+
+    /* Status line below the buttons — shows last command result */
+    #ctrl-status {
+      margin-top: 0.75rem;
+      font-size: 0.72rem;
+      text-align: center;
+      min-height: 1rem;
+      color: #5a6a85;
+    }
+
+    #ctrl-status.ok    { color: #2e7d32; }
+    #ctrl-status.error { color: #c62828; }
+
+    /* ── Map section ────────────────────────────────────────────────────── */
     .map-badge {
       font-size: 0.68rem;
       padding: 2px 8px;
@@ -230,32 +277,12 @@
       letter-spacing: 0.5px;
     }
 
-    .map-badge.loading {
-      background: #e8f4ff;
-      color: #1565c0;
-    }
+    .map-badge.loading { background: #e8f4ff; color: #1565c0; }
+    .map-badge.error   { background: #fdecea; color: #c62828; }
+    .map-badge.ok      { background: #e8f5e9; color: #2e7d32; }
 
-    .map-badge.error {
-      background: #fdecea;
-      color: #c62828;
-    }
+    .map-wrapper { display: flex; justify-content: center; }
 
-    .map-badge.ok {
-      background: #e8f5e9;
-      color: #2e7d32;
-    }
-
-    .map-wrapper {
-      display: flex;
-      justify-content: center;
-    }
-
-    /*
-     * The grid itself: CSS Grid with 21 equal columns.
-     * --cols is set to 21 via JS to keep it DRY.
-     * Each cell is a fixed 24 px square so the full grid is 504 px wide,
-     * which fits comfortably on any laptop screen.
-     */
     .robot-grid {
       display: grid;
       grid-template-columns: repeat(var(--cols, 21), 24px);
@@ -329,8 +356,7 @@
 <body>
 
   <!-- ── Login overlay ────────────────────────────────────────────────────
-       Shown on page load.  Hidden by hideLoginOverlay() once a valid JWT
-       is returned from POST /token.
+       Shown on page load.  Hidden once a valid JWT is returned from POST /token.
   ──────────────────────────────────────────────────────────────────────── -->
   <div id="login-overlay">
     <div class="login-card">
@@ -352,7 +378,6 @@
   <header>
     <h1>⚙ GROUND CONTROL STATION</h1>
     <div style="display:flex;align-items:center;">
-      <!-- User badge: hidden until login; shows username and role -->
       <span id="user-badge"></span>
       <span id="conn-dot" class="conn-indicator error"></span>
       <span id="conn-label" style="font-size:.8rem;color:#ccc">Connecting…</span>
@@ -379,29 +404,68 @@
     </div>
   </main>
 
+  <!-- ── Robot Controls ────────────────────────────────────────────────────
+       Only Commanders can use these — Viewers will receive a 403 from the
+       backend if they somehow trigger a request, and the status line will
+       display the rejection message.  Full role-hiding (removing buttons for
+       Viewers) can be added once RBAC is wired into /api/me response.
+  ──────────────────────────────────────────────────────────────────────── -->
+  <section class="dashboard-section">
+    <div class="section-header">
+      <h2>Robot Controls</h2>
+      <span id="ctrl-role-badge" style="font-size:0.68rem;color:#5a6a85;"></span>
+    </div>
+
+    <!--
+      Compass-rose layout (3×3 CSS Grid):
+        col1        col2        col3
+      [ empty ]  [  ▲ Up  ]  [ empty ]   row 1
+      [ ◄ Left]  [ Reset  ]  [Right ► ]  row 2
+      [ empty ]  [  ▼ Down]  [ empty ]   row 3
+    -->
+    <div class="controls-grid">
+      <!-- Row 1 -->
+      <span class="ctrl-empty"></span>
+      <button class="ctrl-btn dir" id="btn-up"    onclick="move(0, -1)"  title="Move Up (y − 1)">▲</button>
+      <span class="ctrl-empty"></span>
+
+      <!-- Row 2 -->
+      <button class="ctrl-btn dir"       id="btn-left"  onclick="move(-1, 0)"  title="Move Left (x − 1)">◄</button>
+      <button class="ctrl-btn reset-btn" id="btn-reset" onclick="resetRobot()" title="Reset to home position">RST</button>
+      <button class="ctrl-btn dir"       id="btn-right" onclick="move(1, 0)"   title="Move Right (x + 1)">►</button>
+
+      <!-- Row 3 -->
+      <span class="ctrl-empty"></span>
+      <button class="ctrl-btn dir" id="btn-down"  onclick="move(0, 1)"   title="Move Down (y + 1)">▼</button>
+      <span class="ctrl-empty"></span>
+    </div>
+
+    <!-- Last command result — updated after every move / reset attempt -->
+    <div id="ctrl-status"></div>
+  </section>
+
   <!-- ── Map / grid section ─────────────────────────────────────────────── -->
-  <section class="map-section">
-    <div class="map-section-header">
+  <section class="dashboard-section">
+    <div class="section-header">
       <h2>Environment Map</h2>
       <span id="map-badge" class="map-badge loading">Loading…</span>
     </div>
 
     <div class="map-wrapper">
+      <!--
+        The grid cells are injected here by buildGrid() / renderMap().
+        CSS Grid columns/rows are set via CSS custom properties --cols / --rows
+        so the layout automatically matches whatever dimensions the API returns.
+      -->
       <div class="robot-grid" id="robot-grid"></div>
     </div>
 
     <div class="map-axis" id="map-axis"></div>
 
     <div class="map-legend">
-      <span class="legend-item">
-        <span class="legend-swatch empty"></span> Empty
-      </span>
-      <span class="legend-item">
-        <span class="legend-swatch obstacle"></span> Obstacle
-      </span>
-      <span class="legend-item">
-        <span class="legend-swatch robot"></span> Robot
-      </span>
+      <span class="legend-item"><span class="legend-swatch empty"></span> Empty</span>
+      <span class="legend-item"><span class="legend-swatch obstacle"></span> Obstacle</span>
+      <span class="legend-item"><span class="legend-swatch robot"></span> Robot</span>
     </div>
   </section>
 
@@ -410,12 +474,8 @@
 
     // ── Authentication state ───────────────────────────────────────────────
     //
-    // The JWT is stored in a plain JavaScript variable (in-memory only).
-    // This is intentional for this coursework: storing a token in
-    // localStorage or a cookie would require additional security measures
-    // (e.g. HttpOnly cookies, CSRF protection) that are out of scope here.
-    // The trade-off is that the token is lost on page refresh, requiring
-    // the user to log in again — acceptable for a coursework prototype.
+    // JWT stored in memory for simplicity during development.
+    // Token is cleared on page refresh, requiring re-authentication.
     let accessToken = null;
 
     // ── Authenticated fetch helper ─────────────────────────────────────────
@@ -423,9 +483,10 @@
     // All requests to protected backend endpoints must include the JWT in
     // the Authorization header as a Bearer token.  This helper wraps the
     // native fetch() call and injects the header automatically, so every
-    // polling function benefits without repeating the header logic.
+    // polling function and command function benefits without repeating the
+    // header logic.
     //
-    //   Authorization: Bearer <token>
+    // Authorization header using Bearer token authentication
     function authFetch(url, options = {}) {
       return fetch(url, {
         ...options,
@@ -437,85 +498,184 @@
     }
 
     // ── Login handler ──────────────────────────────────────────────────────
-    //
-    // POST /token expects application/x-www-form-urlencoded (the OAuth2
-    // Password flow standard), NOT JSON.  URLSearchParams automatically
-    // encodes the body in the correct format.
     async function handleLogin() {
       const btn      = $('login-btn');
       const errorEl  = $('login-error');
       const username = $('username').value.trim();
       const password = $('password').value;
 
-      // Basic client-side guard — the server will also validate
       if (!username || !password) {
         errorEl.textContent = 'Please enter a username and password.';
         return;
       }
 
-      // Disable the button while the request is in flight to prevent
-      // duplicate submissions if the user clicks quickly
       btn.disabled = true;
       btn.textContent = 'Signing in…';
       errorEl.textContent = '';
 
       try {
-        // Step 1: Exchange credentials for a JWT
+        // Exchange credentials for a JWT via the OAuth2 password flow.
         // Content-Type is set implicitly by URLSearchParams to
-        // application/x-www-form-urlencoded — do not override it manually
+        // application/x-www-form-urlencoded — do not override it manually.
         const res = await fetch('/token', {
           method: 'POST',
           body: new URLSearchParams({ username, password }),
         });
 
         if (!res.ok) {
-          // 401 Unauthorized = wrong credentials
           const data = await res.json().catch(() => ({}));
           throw new Error(data.detail || 'Login failed. Check your credentials.');
         }
 
         const data = await res.json();
-
-        // Step 2: Store the token in memory for all subsequent requests
         accessToken = data.access_token;
 
-        // Step 3: Fetch the user's profile to display role in the header
-        // GET /api/me is a protected endpoint — authFetch adds the Bearer header
+        // Fetch the user's profile to display role in header and controls
         const meRes = await authFetch('/api/me');
         if (meRes.ok) {
           const me = await meRes.json();
-          // Show username and role in the header, then hide the login overlay
           $('user-badge').innerHTML =
             `<span>${me.username}</span>&nbsp;(${me.role})&nbsp;·&nbsp;`;
           $('user-badge').style.display = 'inline';
+
+          // Show the role next to the controls header so it's clear who
+          // is permitted to send commands (Commander only)
+          $('ctrl-role-badge').textContent =
+            me.role === 'commander' ? '🟢 Commander access' : '🔴 Viewer — read only';
         }
 
-        // Step 4: Hide the overlay and start the dashboard polling loops
         $('login-overlay').classList.add('hidden');
         startDashboard();
 
       } catch (err) {
-        // Show the error message below the login button
         errorEl.textContent = err.message;
         btn.disabled = false;
         btn.textContent = 'Sign In';
       }
     }
 
-    // Allow pressing Enter in the password field to submit the form
     $('password').addEventListener('keydown', e => {
       if (e.key === 'Enter') handleLogin();
     });
 
-    // ── Dashboard polling ──────────────────────────────────────────────────
+    // ── Robot position state ───────────────────────────────────────────────
     //
-    // startDashboard() is called once after a successful login.
-    // It runs the first poll immediately and then schedules repeating
-    // intervals — the same timing as before (status: 3 s, map: 10 s).
-
-    // ── State ─────────────────────────────────────────────────────────────
-    let robotPos = null;  // { x, y } or null if not yet known
+    // robotPos is updated on every successful status poll.  The movement
+    // functions read from it to calculate the next target coordinates before
+    // sending a move command.  Using the server-confirmed position (rather
+    // than a locally tracked shadow) prevents drift if a move is rejected.
+    let robotPos = null;  // { x, y } or null
     let mapGrid  = null;  // 2-D array from /api/map, or null
+
+    // ── Controls — loading guard ───────────────────────────────────────────
+    //
+    // While a move or reset request is in-flight we disable all control
+    // buttons to prevent queuing multiple commands simultaneously.
+    const CTRL_IDS = ['btn-up', 'btn-down', 'btn-left', 'btn-right', 'btn-reset'];
+
+    function setControlsDisabled(disabled) {
+      CTRL_IDS.forEach(id => { $(id).disabled = disabled; });
+    }
+
+    function setCtrlStatus(msg, cls = '') {
+      const el = $('ctrl-status');
+      el.textContent = msg;
+      el.className = cls;
+    }
+
+    // ── Move command ───────────────────────────────────────────────────────
+    //
+    // Called by each directional button with a delta (dx, dy).
+    // Movement is relative — we add the delta to the current position to
+    // produce absolute target coordinates required by POST /api/move.
+    //
+    // Coordinate system (matches the simulator):
+    //   x increases to the right   (Left: dx = -1, Right: dx = +1)
+    //   y increases downward        (Up:   dy = -1, Down:  dy = +1)
+    //
+    // Grid bounds: 0 ≤ x ≤ 20, 0 ≤ y ≤ 20
+    async function move(dx, dy) {
+      // Guard: we need a known position before we can calculate the target
+      if (!robotPos) {
+        setCtrlStatus('Position unknown — wait for telemetry.', 'error');
+        return;
+      }
+
+      // ── Bounds checking ────────────────────────────────────────────────
+      // Calculate the target and reject the move before sending any request
+      // if it would take the robot outside the valid grid area.
+      const targetX = robotPos.x + dx;
+      const targetY = robotPos.y + dy;
+
+      if (targetX < 0 || targetX > 20 || targetY < 0 || targetY > 20) {
+        setCtrlStatus(`Out of bounds: (${targetX}, ${targetY}) — move cancelled.`, 'error');
+        return;
+      }
+
+      // ── Send the authenticated move command ────────────────────────────
+      // POST /api/move requires a JSON body with absolute coordinates.
+      // authFetch injects the Authorization: Bearer header automatically.
+      setControlsDisabled(true);
+      setCtrlStatus('Sending move command…');
+
+      try {
+        const res = await authFetch('/api/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ x: targetX, y: targetY }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          // 403 = Viewer trying to move; 503 = robot unreachable
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+
+        setCtrlStatus(`Moved to (${targetX}, ${targetY})`, 'ok');
+
+        // ── Refresh telemetry and map after a successful move ──────────
+        // Immediately re-poll status so the position card and map dot
+        // update without waiting for the next scheduled interval.
+        await pollStatus();
+        await fetchMap();
+
+      } catch (err) {
+        setCtrlStatus(`Move failed: ${err.message}`, 'error');
+      } finally {
+        // Re-enable controls whether the request succeeded or failed
+        setControlsDisabled(false);
+      }
+    }
+
+    // ── Reset command ──────────────────────────────────────────────────────
+    //
+    // POST /api/reset sends no body.  After a successful reset we refresh
+    // both status and map so the dashboard reflects the robot's home position.
+    async function resetRobot() {
+      setControlsDisabled(true);
+      setCtrlStatus('Sending reset command…');
+
+      try {
+        // authFetch injects the Authorization: Bearer header automatically
+        const res = await authFetch('/api/reset', { method: 'POST' });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+
+        setCtrlStatus('Robot reset to home position.', 'ok');
+
+        // Refresh telemetry and map to reflect the new home position
+        await pollStatus();
+        await fetchMap();
+
+      } catch (err) {
+        setCtrlStatus(`Reset failed: ${err.message}`, 'error');
+      } finally {
+        setControlsDisabled(false);
+      }
+    }
 
     // ── Status polling ─────────────────────────────────────────────────────
     async function pollStatus() {
@@ -535,12 +695,12 @@
         if (d.battery !== undefined) {
           $('battery').textContent = `${d.battery.toFixed(1)}%`;
           const card = $('card-battery');
-          card.className = 'stat-card' + (d.battery < 20 ? ' danger' : d.battery < 40 ? ' warn' : '');
+          card.className = 'stat-card' +
+            (d.battery < 20 ? ' danger' : d.battery < 40 ? ' warn' : '');
         }
 
-        // Update robot position and re-render the map overlay if we already
-        // have map data.  This keeps the dot moving without re-fetching the
-        // whole map on every status poll.
+        // Update the shared robotPos state so move() always has current
+        // coordinates to calculate from, and re-render the map dot.
         if (d.position) {
           robotPos = { x: d.position.x, y: d.position.y };
           if (mapGrid) renderMap(mapGrid);
@@ -583,11 +743,6 @@
     }
 
     // ── Grid builder — called once when map data first arrives ─────────────
-    //
-    // We build the full set of <div> cells once and store references to them
-    // in a flat array (`cellEls`).  Subsequent re-renders only swap CSS
-    // classes rather than rebuilding the DOM — this keeps updates fast and
-    // avoids layout thrashing when the status poll fires every 3 s.
     const cellEls = [];  // flat array: cellEls[row * cols + col]
 
     function buildGrid(rows, cols) {
@@ -613,24 +768,18 @@
     }
 
     // ── Map renderer — called on every map fetch AND every status poll ─────
-    //
-    // The map API returns rows in row-major order where row 0 is y=0.
-    // We iterate top-to-bottom so CSS Grid's natural left-to-right,
-    // top-to-bottom flow matches the coordinate system without transforms.
     function renderMap(grid) {
       const rows = grid.length;
       const cols = grid[0].length;
 
-      if (cellEls.length !== rows * cols) {
-        buildGrid(rows, cols);
-      }
+      if (cellEls.length !== rows * cols) buildGrid(rows, cols);
 
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
           const cell  = cellEls[row * cols + col];
           const value = grid[row][col];
 
-          // robotPos.x maps to column index; robotPos.y maps to row index
+          // robotPos.x → column index; robotPos.y → row index
           const isRobot = robotPos && robotPos.x === col && robotPos.y === row;
 
           if (isRobot) {
