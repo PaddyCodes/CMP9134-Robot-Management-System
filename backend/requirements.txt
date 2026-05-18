@@ -19,3 +19,12 @@ python-jose[cryptography]
 # It is required when using OAuth2PasswordRequestForm for username/password
 # authentication through the automatically generated Swagger UI.
 python-multipart
+
+# pytest is used to run automated backend tests. These tests verify core API
+# behaviour such as authentication, protected routes, RBAC restrictions, and
+# health-check responses before code is merged.
+pytest
+
+# pytest-asyncio supports testing asynchronous Python code. It is useful for
+# validating async FastAPI route behaviour and async helper functions.
+pytest-asyncio
